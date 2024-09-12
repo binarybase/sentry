@@ -1,5 +1,5 @@
 import logging
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl, quote
 
 from oauthlib.oauth1 import SIGNATURE_RSA
 from requests import PreparedRequest
@@ -12,6 +12,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
@@ -30,6 +31,7 @@ class BitbucketServerAPIPath:
     repository_commits = "/rest/api/1.0/projects/{project}/repos/{repo}/commits"
     repository_commit_details = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}"
     commit_changes = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}/changes"
+    source = "/rest/api/1.0/projects/{project}/repos/{repo}/browse/{path}?at={sha}"
 
 
 class BitbucketServerSetupClient(ApiClient):
@@ -257,7 +259,21 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
         return values
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
-        raise IntegrationFeatureNotImplementedError
+        logger.info("check_file", extra={
+            "repo": repo.name,
+            "project": repo.config["project"],
+            "version": version,
+            "path": path
+        })
+
+        return self.head_cached(
+            path=BitbucketServerAPIPath.source.format(
+                project=quote(repo.config["project"]),
+                repo=quote(repo.config["repo"]),
+                sha=version,
+                path=path,
+            )
+        )
 
     def get_file(self, repo: Repository, path: str, version: str, codeowners: bool = False) -> str:
         raise IntegrationFeatureNotImplementedError

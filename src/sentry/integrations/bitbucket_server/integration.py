@@ -57,6 +57,13 @@ FEATURES = [
         """,
         IntegrationFeatures.COMMITS,
     ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your Bitbucket source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
+    ),
 ]
 
 setup_alert = {
@@ -299,16 +306,18 @@ class BitbucketServerIntegration(RepositoryIntegration):
         return list(filter(lambda repo: repo.name not in accessible_repos, repos))
 
     def source_url_matches(self, url: str) -> bool:
-        raise IntegrationFeatureNotImplementedError
+        return url.startswith(self.model.metadata["domain_name"])
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
-        raise IntegrationFeatureNotImplementedError
+    def format_source_url(self, repo, filepath: str, branch: str) -> str:
+        return f"{repo.url}/{filepath}?at={branch}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        raise IntegrationFeatureNotImplementedError
+        _, branch = url.partition("?at=")
+        return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        raise IntegrationFeatureNotImplementedError
+        source_path, _ = url.partition("?at=")
+        return source_path
 
     # Bitbucket Server only methods
 
@@ -323,7 +332,10 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = BitbucketServerIntegration
     needs_default_identity = True
-    features = frozenset([IntegrationFeatures.COMMITS])
+    features = frozenset([
+        IntegrationFeatures.COMMITS,
+        IntegrationFeatures.STACKTRACE_LINK,
+    ])
     setup_dialog_config = {"width": 1030, "height": 1000}
 
     def get_pipeline_views(self):
