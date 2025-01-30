@@ -259,7 +259,7 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         logger.info("bitbucket_server: check_file", extra={
-            "repo": repo.name,
+            "repo": repo.config["repo"],
             "project": repo.config["project"],
             "version": version,
             "path": path
@@ -268,7 +268,7 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
         return self.head_cached(
             path=BitbucketServerAPIPath.source.format(
                 project=quote(repo.config["project"]),
-                repo=quote(repo.name),
+                repo=quote(repo.config["repo"]),
                 sha=version,
                 path=path,
             )
