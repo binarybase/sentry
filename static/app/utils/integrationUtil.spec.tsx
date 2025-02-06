@@ -8,7 +8,7 @@ describe('getIntegrationSourceUrl()', function () {
 
   it('returns the correct url for Bitbucket Server', function () {
     const result = getIntegrationSourceUrl('bitbucket_server', 'https://example.com', 10);
-    expect(result).toEqual('https://example.com#lines-10');
+    expect(result).toEqual('https://example.com#10');
   });
 
   it('returns the correct url for GitHub', function () {
